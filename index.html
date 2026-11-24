@@ -3,67 +3,84 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>外掛字幕播放器</title>
+<title>我的字幕影片</title>
 <style>
-:root{color-scheme:light dark;--bg:light-dark(#f6f6f4,#111);--ink:light-dark(#151515,#eee);--line:light-dark(#d8d8d4,#333);--acc:#e4002b}
+:root{color-scheme:light dark;--bg:light-dark(#f6f6f4,#111);--ink:light-dark(#151515,#eee);--line:light-dark(#d8d8d4,#333);--card:light-dark(#fff,#1b1b1b);--acc:#e4002b}
 *{box-sizing:border-box;min-width:0}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,"PingFang TC","Noto Sans TC",sans-serif}
-main{max-width:900px;margin:auto;padding:16px}
-h1{font-size:22px;margin:4px 0 12px}
+main{max-width:900px;margin:auto;padding:12px 16px 40px}
+h1{font-size:20px;margin:4px 0 10px}
+h2{font-size:17px;margin:20px 0 8px}
 .row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;align-items:center}
-input[type=text]{flex:1 1 240px;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
-button,label.btn{font-size:15px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:8px;background:light-dark(#fff,#1c1c1c);color:inherit;cursor:pointer;display:inline-flex;align-items:center}
+input[type=text],textarea{flex:1 1 240px;width:100%;font-size:16px;padding:10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
+button,label.btn{font-size:15px;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:inherit;cursor:pointer;display:inline-flex;align-items:center}
 button.main{background:var(--acc);border-color:var(--acc);color:#fff}
-#stage{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden}
+#stage{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;display:none}
+#stage.on{display:block}
 #player{position:absolute;inset:0;width:100%;height:100%}
 #sub{position:absolute;left:4%;right:4%;bottom:8%;text-align:center;pointer-events:none;z-index:2}
-#sub span{display:inline;background:rgba(0,0,0,.72);color:#fff;padding:2px 8px;border-radius:4px;line-height:1.6;font-size:var(--fs,18px);white-space:pre-wrap;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+#sub span{background:rgba(0,0,0,.72);color:#fff;padding:2px 8px;border-radius:4px;line-height:1.6;font-size:var(--fs,18px);white-space:pre-wrap;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 #stage.full{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;aspect-ratio:auto;border-radius:0;z-index:9}
 #exit{display:none;position:absolute;top:8px;right:8px;z-index:3;min-height:36px;opacity:.7}
 #stage.full #exit{display:inline-flex}
+#ctl{display:none}#ctl.on{display:block}
 #msg{font-size:14px;opacity:.8;min-height:1.5em}
-small{opacity:.7}
+#list{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.item{display:flex;gap:10px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--card);cursor:pointer;text-align:left;font:inherit;color:inherit;min-height:0;align-items:flex-start}
+.item.now{border-color:var(--acc)}
+.item img{width:120px;aspect-ratio:16/9;object-fit:cover;border-radius:6px;flex:none;background:#000}
+.item b{font-weight:600;font-size:15px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.item small{display:block;opacity:.6;font-size:13px;margin-top:2px}
+summary{cursor:pointer;padding:8px 0;font-size:15px}
+small.note{opacity:.7}
 </style>
 </head>
 <body>
 <main>
-<h1>外掛字幕播放器</h1>
-<div class="row">
-  <input type="text" id="url" placeholder="貼上 YouTube 影片網址">
-</div>
-<div class="row">
-  <label class="btn" for="file">選字幕檔 (.srt / .vtt)</label>
-  <input type="file" id="file" accept=".srt,.vtt,text/plain" hidden>
-  <button class="main" id="load">載入影片</button>
-</div>
-<div id="msg"></div>
+<h1>我的字幕影片</h1>
 
 <div id="stage">
   <div id="player"></div>
   <div id="sub"></div>
   <button id="exit">✕ 離開全螢幕</button>
 </div>
+<div id="ctl">
+  <div class="row">
+    <button id="full">全螢幕（保留字幕）</button>
+    <button data-off="-0.5">字幕早 0.5 秒</button>
+    <button data-off="0.5">字幕晚 0.5 秒</button>
+    <span id="offv">位移 0.0 秒</span>
+  </div>
+  <div class="row">
+    <button data-fs="-2">字小一點</button>
+    <button data-fs="2">字大一點</button>
+  </div>
+  <small class="note">請用這頁的「全螢幕」，不要用 YouTube 自己的全螢幕，不然字幕會被蓋住。</small>
+</div>
+<div id="msg"></div>
 
-<div class="row">
-  <button id="full">全螢幕（保留字幕）</button>
-  <button data-off="-0.5">字幕早 0.5 秒</button>
-  <button data-off="0.5">字幕晚 0.5 秒</button>
-  <span id="offv">位移 0.0 秒</span>
-</div>
-<div class="row">
-  <button data-fs="-2">字小一點</button>
-  <button data-fs="2">字大一點</button>
-</div>
-<p><small>請用這頁的「全螢幕」按鈕，不要用 YouTube 自己的全螢幕，否則字幕會被蓋住。手機建議轉橫向。</small></p>
+<h2>影片清單</h2>
+<div id="list"></div>
+
+<details>
+  <summary>手動載入（不在清單裡的影片）</summary>
+  <div class="row"><input type="text" id="url" placeholder="貼上 YouTube 影片網址"></div>
+  <div class="row">
+    <label class="btn" for="file">選字幕檔</label>
+    <input type="file" id="file" hidden>
+  </div>
+  <textarea id="paste" rows="4" placeholder="或把字幕內容直接貼在這裡"></textarea>
+  <div class="row"><button class="main" id="load">載入</button></div>
+</details>
 </main>
 
 <script>
 {
 const $=s=>document.querySelector(s);
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let cues=[],offset=0,fs=+(store.get('fs')||18),player=null,apiReady=false,pending=null;
+let cues=[],offset=0,fs=+(store.get('fs')||18),player=null,apiReady=false,pending=null,videos=[],fileText='';
 
-function toSec(t){const m=t.trim().replace(',','.').split(':');let s=0;for(const p of m)s=s*60+parseFloat(p);return s}
+function toSec(t){let s=0;for(const p of t.trim().replace(',','.').split(':'))s=s*60+parseFloat(p);return s}
 function parse(text){
   const out=[];
   text=text.replace(/\r/g,'').replace(/^﻿/,'');
@@ -94,28 +111,68 @@ function tick(){
   requestAnimationFrame(tick);
 }
 
-function create(id){
+function play(id){
+  $('#stage').classList.add('on');$('#ctl').classList.add('on');
+  offset=0;$('#offv').textContent='位移 0.0 秒';
+  if(!apiReady){pending=id;return}
   if(player){player.loadVideoById(id);return}
   player=new YT.Player('player',{videoId:id,width:'100%',height:'100%',
     playerVars:{playsinline:1,fs:0,rel:0,cc_load_policy:0,iv_load_policy:3,origin:location.origin},
     events:{onError:e=>msg('影片無法播放（錯誤 '+e.data+'）。可能是上傳者關閉了「允許嵌入」。')}});
 }
-window.onYouTubeIframeAPIReady=()=>{apiReady=true;if(pending){create(pending);pending=null}};
+window.onYouTubeIframeAPIReady=()=>{apiReady=true;if(pending){const p=pending;pending=null;play(p)}};
 
-$('#file').addEventListener('change',async e=>{
-  const f=e.target.files[0];if(!f)return;
-  const text=await f.text();
-  cues=parse(text);
-  if(cues.length){store.set('subs',text);msg('已載入字幕：'+f.name+'（'+cues.length+' 句）')}
-  else msg('讀不到字幕內容，請確認是 .srt 或 .vtt 檔，且編碼是 UTF-8。');
-});
+async function openVideo(v){
+  document.querySelectorAll('.item').forEach(el=>el.classList.toggle('now',el.dataset.id===v.id));
+  try{history.replaceState(null,'','?v='+v.id)}catch(e){}
+  msg('載入字幕中…');
+  try{
+    const r=await fetch(v.sub+'?t='+Date.now());
+    if(!r.ok)throw 0;
+    cues=parse(await r.text());
+    msg(cues.length?'':'這部的字幕檔是空的或格式不對。');
+  }catch(e){cues=[];msg('找不到這部的字幕檔。')}
+  play(v.id);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderList(){
+  const box=$('#list');box.textContent='';
+  if(!videos.length){box.textContent='還沒有影片。在電腦上把字幕檔拖到 add-sub.bat 就會出現在這裡。';return}
+  for(const v of videos){
+    const b=document.createElement('button');b.className='item';b.dataset.id=v.id;
+    const img=document.createElement('img');img.loading='lazy';img.alt='';img.src='https://i.ytimg.com/vi/'+encodeURIComponent(v.id)+'/mqdefault.jpg';
+    const d=document.createElement('div');
+    const t=document.createElement('b');t.textContent=v.title||v.id;
+    const s=document.createElement('small');s.textContent=v.added||'';
+    d.append(t,s);b.append(img,d);
+    b.addEventListener('click',()=>openVideo(v));
+    box.appendChild(b);
+  }
+}
+
+async function loadList(){
+  try{
+    const r=await fetch('videos.json?t='+Date.now());
+    if(r.ok){const j=await r.json();videos=(Array.isArray(j)?j:[j]).filter(v=>v&&v.id&&v.sub)}
+  }catch(e){}
+  renderList();
+  const q=new URLSearchParams(location.search).get('v');
+  const v=q&&videos.find(x=>x.id===q);
+  if(v)openVideo(v);
+}
+
+// 手動載入
+$('#file').addEventListener('change',async e=>{const f=e.target.files[0];if(f){fileText=await f.text();msg('已選字幕：'+f.name)}});
 $('#load').addEventListener('click',()=>{
   const id=vid($('#url').value);
   if(!id){msg('網址看不懂，請貼完整的 YouTube 影片網址。');return}
-  store.set('url',$('#url').value);
-  if(!cues.length)msg('提醒：還沒選字幕檔。');
-  apiReady?create(id):(pending=id);
+  const text=$('#paste').value.trim()||fileText;
+  cues=parse(text);
+  msg(cues.length?'已載入字幕（'+cues.length+' 句）':'沒有讀到字幕，影片會照常播放。');
+  play(id);window.scrollTo({top:0,behavior:'smooth'});
 });
+
 document.querySelectorAll('[data-off]').forEach(b=>b.addEventListener('click',()=>{
   offset=Math.round((offset+ +b.dataset.off)*10)/10;
   $('#offv').textContent='位移 '+offset.toFixed(1)+' 秒';
@@ -123,26 +180,18 @@ document.querySelectorAll('[data-off]').forEach(b=>b.addEventListener('click',()
 document.querySelectorAll('[data-fs]').forEach(b=>b.addEventListener('click',()=>{fs=Math.max(10,Math.min(48,fs+ +b.dataset.fs));setFs()}));
 
 const stage=$('#stage');
-function enterFull(){
+$('#full').addEventListener('click',()=>{
   stage.classList.add('full');
   const r=stage.requestFullscreen||stage.webkitRequestFullscreen;
   if(r){try{const p=r.call(stage);p&&p.catch&&p.catch(()=>{})}catch(e){}}
   try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}
-}
-function exitFull(){
-  stage.classList.remove('full');
-  if(document.fullscreenElement){try{document.exitFullscreen()}catch(e){}}
-}
-$('#full').addEventListener('click',enterFull);
-$('#exit').addEventListener('click',exitFull);
+});
+$('#exit').addEventListener('click',()=>{stage.classList.remove('full');if(document.fullscreenElement){try{document.exitFullscreen()}catch(e){}}});
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)stage.classList.remove('full')});
 
-// 還原上次的網址和字幕
-const u=store.get('url');if(u)$('#url').value=u;
-const s=store.get('subs');if(s){cues=parse(s);if(cues.length)msg('已還原上次的字幕（'+cues.length+' 句）。')}
 setFs();
 requestAnimationFrame(tick);
-
+loadList();
 const tag=document.createElement('script');tag.src='https://www.youtube.com/iframe_api';document.head.appendChild(tag);
 }
 </script>
